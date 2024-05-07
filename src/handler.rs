@@ -191,3 +191,117 @@ pub async fn get_note_handler(
         }
     };
 }
+
+pub async fn edit_note_handler(
+    Path(id): Path<uuid::Uuid>,
+    State(data): State<Arc<AppState>>,
+    Json(body): Json<UpdateNoteSchema>,
+) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
+    // // validate note with query macro
+    // let query_result = sqlx::query_as!(
+    //     NoteModel,
+    //     r#"SELECT * FROM notes WHERE id = ?"#,
+    //     id.to_string()
+    // )
+    // .fetch_one(&data.db)
+    // .await;
+
+    // validate note without query macro
+    let query_result = sqlx::query_as::<_, NoteModel>(r#"SELECT * FROM notes WHERE id = ?"#)
+        .bind(id.to_string())
+        .fetch_one(&data.db)
+        .await;
+
+    // fetch the result
+    let note = match query_result {
+        Ok(note) => note,
+        Err(sqlx::Error::RowNotFound) => {
+            let error_response = serde_json::json!({
+                "status": "error",
+                "message": format!("Note with ID: {} not found", id)
+            });
+            return Err((StatusCode::NOT_FOUND, Json(error_response)));
+        }
+        Err(e) => {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({
+                    "status": "error",
+                    "message": format!("{:?}", e)
+                })),
+            ));
+        }
+    };
+
+    // parse data
+    let is_published = body.is_published.unwrap_or(note.is_published != 0);
+    let i8_is_published = is_published as i8;
+
+    // Update (if empty, use old value)
+    let update_result =
+        sqlx::query(r#"UPDATE notes SET title = ?, content = ?, is_published = ? WHERE id = ?"#)
+            .bind(body.title.to_owned().unwrap_or_else(|| note.title.clone()))
+            .bind(
+                body.content
+                    .to_owned()
+                    .unwrap_or_else(|| note.content.clone()),
+            )
+            .bind(i8_is_published)
+            .bind(id.to_string())
+            .execute(&data.db)
+            .await
+            .map_err(|e| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(json!({
+                        "status": "error",
+                        "message": format!("{:?}", e)
+                    })),
+                )
+            })?;
+
+    // if no data affected (or deleted when wanted to update)
+    if update_result.rows_affected() == 0 {
+        let error_response = serde_json::json!({
+            "status": "error",
+            "message": format!("Note with ID: {} not found", id)
+        });
+        return Err((StatusCode::NOT_FOUND, Json(error_response)));
+    }
+
+    // // get updated data with query macro
+    // let updated_note = sqlx::query_as!(
+    //     NoteModel,
+    //     r#"SELECT * FROM notes WHERE id = ?"#,
+    //     id.to_string()
+    // )
+    // .fetch_one(&data.db)
+    // .await
+    // .map_err(|e| {
+    //     (
+    //         StatusCode::INTERNAL_SERVER_ERROR,
+    //         Json(json!({"status": "error","message": format!("{:?}", e)})),
+    //     )
+    // })?;
+
+    // get updated data without query macro
+    let updated_note = sqlx::query_as::<_, NoteModel>(r#"SELECT * FROM notes WHERE id = ?"#)
+        .bind(id.to_string())
+        .fetch_one(&data.db)
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"status": "error","message": format!("{:?}", e)})),
+            )
+        })?;
+
+    let note_response = serde_json::json!({
+        "status": "success",
+        "data": serde_json::json!({
+            "note": to_note_response(&updated_note)
+        })
+    });
+
+    Ok(Json(note_response))
+}
