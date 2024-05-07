@@ -1,0 +1,12 @@
+services:
+  mysql:
+    image: mysql:8.40.0
+    container_name: mysql
+    env_file:
+      - ./.env
+    ports:
+      - '3307:3306'
+    volumes:
+      - ./data/mysqlDb:/var/lib/mysql
+volumes:
+  mysqlDb:
