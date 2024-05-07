@@ -347,3 +347,15 @@ pub async fn delete_note_handler(
 
     Ok(StatusCode::NO_CONTENT)
 }
+
+// Convert DB Model to Response
+fn to_note_response(note: &NoteModel) -> NoteModelResponse {
+    NoteModelResponse {
+        id: note.id.to_owned(),
+        title: note.title.to_owned(),
+        content: note.content.to_owned(),
+        is_published: note.is_published != 0,
+        created_at: note.created_at.unwrap(),
+        updated_at: note.updated_at.unwrap(),
+    }
+}
