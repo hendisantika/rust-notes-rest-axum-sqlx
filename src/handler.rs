@@ -305,3 +305,45 @@ pub async fn edit_note_handler(
 
     Ok(Json(note_response))
 }
+
+pub async fn delete_note_handler(
+    Path(id): Path<uuid::Uuid>,
+    State(data): State<Arc<AppState>>,
+) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
+    // // delete with query macro
+    // let query_result = sqlx::query!(r#"DELETE FROM notes WHERE id = ?"#, id.to_string())
+    //     .execute(&data.db)
+    //     .await
+    //     .map_err(|e| {
+    //         (
+    //             StatusCode::INTERNAL_SERVER_ERROR,
+    //             Json(json!({
+    //                 "status": "error",
+    //                 "message": format!("{:?}", e)
+    //             })),
+    //         )
+    //     })?;
+
+    // delete not using query macro
+    let query_result = sqlx::query(r#"DELETE FROM notes WHERE id = ?"#)
+        .bind(id.to_string())
+        .execute(&data.db)
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({"status": "error","message": format!("{:?}", e)})),
+            )
+        })?;
+
+    // response
+    if query_result.rows_affected() == 0 {
+        let error_response = serde_json::json!({
+            "status": "error",
+            "message": format!("Note with ID: {} not found", id)
+        });
+        return Err((StatusCode::NOT_FOUND, Json(error_response)));
+    }
+
+    Ok(StatusCode::NO_CONTENT)
+}
