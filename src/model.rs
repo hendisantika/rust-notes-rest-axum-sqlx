@@ -11,3 +11,15 @@ pub struct NoteModel {
     pub created_at: Option<chrono::DateTime<chrono::Utc>>,
     pub updated_at: Option<chrono::DateTime<chrono::Utc>>,
 }
+
+// For json response
+#[derive(Debug, Deserialize, Serialize)]
+#[allow(non_snake_case)]
+pub struct NoteModelResponse {
+    pub id: String,
+    pub title: String,
+    pub content: String,
+    pub is_published: bool,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}
