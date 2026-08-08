@@ -20,7 +20,7 @@ pub struct AppState {
 }
 
 #[tokio::main]
-fn main() {
+async fn main() {
     println!("Hello, world!");
      dotenv().ok();
     println!("🌟 REST API Service 🌟");
