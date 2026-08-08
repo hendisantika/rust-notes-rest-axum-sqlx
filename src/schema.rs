@@ -8,6 +8,7 @@ pub struct FilterOptions {
 }
 
 // Read/Delete
+#[allow(dead_code)] // reserved: handlers currently extract the id via Path<Uuid>
 #[derive(Deserialize, Debug)]
 pub struct ParamOptions {
     pub id: String,

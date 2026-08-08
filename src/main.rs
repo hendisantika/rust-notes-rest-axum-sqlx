@@ -22,7 +22,7 @@ pub struct AppState {
 #[tokio::main]
 async fn main() {
     println!("Hello, world!");
-     dotenv().ok();
+    dotenv().ok();
     println!("🌟 REST API Service 🌟");
 
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must set");

@@ -70,7 +70,7 @@ pub async fn note_list_handler(
     // Response
     let note_responses = notes
         .iter()
-        .map(|note| to_note_response(&note))
+        .map(to_note_response)
         .collect::<Vec<NoteModelResponse>>();
 
     let json_response = serde_json::json!({
@@ -174,22 +174,20 @@ pub async fn get_note_handler(
                 })
             });
 
-            return Ok(Json(note_response));
+            Ok(Json(note_response))
         }
         Err(sqlx::Error::RowNotFound) => {
             let error_response = serde_json::json!({
                 "status": "fail",
                 "message": format!("Note with ID: {} not found", id)
             });
-            return Err((StatusCode::NOT_FOUND, Json(error_response)));
+            Err((StatusCode::NOT_FOUND, Json(error_response)))
         }
-        Err(e) => {
-            return Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({"status": "error","message": format!("{:?}", e)})),
-            ));
-        }
-    };
+        Err(e) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"status": "error","message": format!("{:?}", e)})),
+        )),
+    }
 }
 
 pub async fn edit_note_handler(
